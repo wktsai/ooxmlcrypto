@@ -50,6 +50,38 @@ namespace OfficeOpenXmlCrypto.Test
         }
 
         [Test]
+        public void IsFilePlaintext()
+        {
+            CreateTestWorkbook(null);
+            Assert.AreEqual(true, OfficeCryptoStream.IsPlaintext(TestFile), "IsPlaintext");
+            Assert.AreEqual(false, OfficeCryptoStream.IsEncrypted(TestFile), "IsEncrypted");
+        }
+
+        [Test]
+        public void IsFileEncrypted()
+        {
+            CreateTestWorkbook("foo");
+            Assert.AreEqual(false, OfficeCryptoStream.IsPlaintext(TestFile), "IsPlaintext");
+            Assert.AreEqual(true, OfficeCryptoStream.IsEncrypted(TestFile), "IsEncrypted");
+        }
+
+        [Test]
+        public void IsFileNotOfficePackage()
+        {
+            File.WriteAllText(TestFile, "Not an office package");
+            Assert.AreEqual(false, OfficeCryptoStream.IsPlaintext(TestFile), "IsPlaintext");
+            Assert.AreEqual(false, OfficeCryptoStream.IsEncrypted(TestFile), "IsEncrypted");
+        }
+
+        [Test]
+        public void TestFormatEncrypted()
+        {
+            CreateTestWorkbook("foo");
+            Assert.AreEqual(false, OfficeCryptoStream.IsPlaintext(TestFile), "IsPlaintext");
+            Assert.AreEqual(true, OfficeCryptoStream.IsEncrypted(TestFile), "IsEncrypted");
+        }
+
+        [Test]
         public void TryOpen()
         {
             CreateTestWorkbook("foo");

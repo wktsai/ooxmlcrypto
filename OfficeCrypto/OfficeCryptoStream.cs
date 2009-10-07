@@ -21,8 +21,10 @@ namespace OfficeOpenXmlCrypto
     /// </summary>
     public class OfficeCryptoStream : MemoryStream
     {
-        byte[] HeaderEncrypted = new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
-        byte[] HeaderPlaintext = new byte[] { 0x50, 0x4B, 0x03, 0x04 };
+        static readonly byte[] HeaderEncrypted = 
+            new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
+        static readonly byte[] 
+            HeaderPlaintext = new byte[] { 0x50, 0x4B, 0x03, 0x04 };
 
         String _password = null;
 
@@ -120,8 +122,8 @@ namespace OfficeOpenXmlCrypto
             }
 
             // Check if the file is actually encrypted or plaintext
-            bool isPlain = ContainsHeader(storageStream, HeaderPlaintext);
-            bool isEncrypted = ContainsHeader(storageStream, HeaderEncrypted);
+            bool isPlain = IsPlaintext(storageStream);
+            bool isEncrypted = IsEncrypted(storageStream);
             if (!isPlain && !isEncrypted)
             {
                 Close(); // In ctor, cannot rely on client/using to close
@@ -159,6 +161,54 @@ namespace OfficeOpenXmlCrypto
             base.Position = 0;
         }
 
+        #region File format checks
+
+        /// <summary>
+        /// Checks if given file is a plaintext Office 2007 package.
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        public static bool IsPlaintext(String file)
+        {
+            using (FileStream fs = new FileStream(file, FileMode.Open))
+            {
+                return IsPlaintext(fs);
+            }
+        }
+
+        /// <summary>
+        /// Checks if given stream is a plaintext Office 2007 package.
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        public static bool IsPlaintext(Stream s)
+        {
+            return ContainsHeader(s, HeaderPlaintext);
+        }
+
+        /// <summary>
+        /// Checks if given file is an encrypted Office 2007 package.
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        public static bool IsEncrypted(String file)
+        {
+            using (FileStream fs = new FileStream(file, FileMode.Open))
+            {
+                return IsEncrypted(fs);
+            }
+        }
+
+        /// <summary>
+        /// Checks if given stream is an encrypted Office 2007 package.
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        public static bool IsEncrypted(Stream s)
+        {
+            return ContainsHeader(s, HeaderEncrypted);
+        }
+
         /// <summary>
         /// Checks the header without messing up the stream
         /// </summary>
@@ -168,7 +218,7 @@ namespace OfficeOpenXmlCrypto
         static bool ContainsHeader(Stream s, byte[] header)
         {
             long pos = s.Position;
-            try 
+            try
             {
                 foreach (byte hb in header)
                 {
@@ -181,6 +231,8 @@ namespace OfficeOpenXmlCrypto
             }
             return true;
         }
+
+        #endregion
 
         /// <summary>
         /// True if stream is encrypted (has a password), false otherwise.
