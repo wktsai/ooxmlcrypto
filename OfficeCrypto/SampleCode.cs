@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using OfficeOpenXml;
 using System.IO;
 
 namespace OfficeOpenXmlCrypto.Test
@@ -54,8 +53,22 @@ namespace OfficeOpenXmlCrypto.Test
             }
         }
 
+        public static OfficeCryptoStream OpenPasswordProtectedFile(String file)
+        {
+            String password = null;
+            OfficeCryptoStream stream = null;
+            while (OfficeCryptoStream.TryOpen(file, password, out stream) == false)
+            {
+                // Replace with your own input method (e.g. a dialog box)
+                Console.Write("Enter password: ");
+                password = Console.ReadLine();
+            }
+            return stream;
+        }
+
         public static void DoStuff(Stream stream)
         {
+            /*
             // Create the package based on the stream
             ExcelPackage package = new ExcelPackage(stream);
 
@@ -64,6 +77,7 @@ namespace OfficeOpenXmlCrypto.Test
             // When you're done, save and close the package
             package.Save();
             package.Dispose();
+            */
         }
 
     }

@@ -54,6 +54,7 @@
     <Compile Include="OfficeCrypto.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="OleStorage.cs" />
+    <Compile Include="SampleCode.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
