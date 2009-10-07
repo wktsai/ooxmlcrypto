@@ -62,34 +62,64 @@ namespace OfficeOpenXml
 		#endregion
 
 		#region ExcelPackage Constructors
-		/// <summary>
+
+        /// <summary>
+        /// Creates a new instance of ExcelPackage based on an underlying storage stream.
+        /// Pass an OfficeCryptoStream to support encrypted (password-protected) Excel files.
+        /// </summary>
+        /// <param name="packageStream">If stream is empty, new package is created, otherwise
+        /// it is opened by reading from the stream.</param>
+        public ExcelPackage(Stream packageStream)
+        {
+            if (packageStream.Length > 0)
+            {
+                // open the existing package
+                _package = Package.Open(packageStream, FileMode.Open, FileAccess.ReadWrite);
+            }
+            else
+            {
+                // create a new package and add the main workbook.xml part
+                _package = Package.Open(packageStream, FileMode.Create);
+                InitializeNewPackage();
+            }
+        }
+        
+        /// <summary>
 		/// Creates a new instance of the ExcelPackage class based on a existing file or creates a new file. 
 		/// </summary>
 		/// <param name="newFile">If newFile exists, it is opened.  Otherwise it is created from scratch.</param>
 		public ExcelPackage(FileInfo newFile)
 		{
 			_outputFolderPath = newFile.DirectoryName;
-			if (newFile.Exists)
-				// open the existing package
-				_package = Package.Open(newFile.FullName, FileMode.Open, FileAccess.ReadWrite);
-			else
-			{
-				// create a new package and add the main workbook.xml part
-				_package = Package.Open(newFile.FullName, FileMode.Create, FileAccess.ReadWrite);
-				
-				// save a temporary part to create the default application/xml content type
-				Uri uriDefaultContentType = new Uri("/default.xml", UriKind.Relative);
-				PackagePart partTemp = _package.CreatePart(uriDefaultContentType, "application/xml");
-
-				XmlDocument workbook = Workbook.WorkbookXml; // this will create the workbook xml in the package
-				
-				// create the relationship to the main part
-				_package.CreateRelationship(Workbook.WorkbookUri, TargetMode.Internal, schemaRelationships + "/officeDocument");
-				
-				// remove the temporary part that created the default xml content type
-				_package.DeletePart(uriDefaultContentType);
-			}
+            if (newFile.Exists)
+            {
+                // open the existing package
+                _package = Package.Open(newFile.FullName, FileMode.Open, FileAccess.ReadWrite);
+            }
+            else
+            {
+                // create a new package and add the main workbook.xml part
+                _package = Package.Open(newFile.FullName, FileMode.Create, FileAccess.ReadWrite);
+                InitializeNewPackage();
+            }
 		}
+
+        private void InitializeNewPackage()
+        {
+            if (_package == null) { throw new ApplicationException("Package is null."); }
+
+            // save a temporary part to create the default application/xml content type
+            Uri uriDefaultContentType = new Uri("/default.xml", UriKind.Relative);
+            PackagePart partTemp = _package.CreatePart(uriDefaultContentType, "application/xml");
+
+            XmlDocument workbook = Workbook.WorkbookXml; // this will create the workbook xml in the package
+
+            // create the relationship to the main part
+            _package.CreateRelationship(Workbook.WorkbookUri, TargetMode.Internal, schemaRelationships + "/officeDocument");
+
+            // remove the temporary part that created the default xml content type
+            _package.DeletePart(uriDefaultContentType);
+        }
 
 		/// <summary>
 		/// Creates a new instance of the ExcelPackage class based on a existing template.

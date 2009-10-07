@@ -558,7 +558,7 @@ namespace OfficeOpenXml
 		{
 			#region Delete the printer settings component (if it exists)
 			// we also need to delete the relationship from the pageSetup tag
-			XmlNode pageSetup = _worksheetXml.SelectSingleNode("//d:pageSetup", NameSpaceManager);
+			XmlNode pageSetup = WorksheetXml.SelectSingleNode("//d:pageSetup", NameSpaceManager);
 			if (pageSetup != null)
 			{
 				XmlAttribute attr = (XmlAttribute)pageSetup.Attributes.GetNamedItem("id", ExcelPackage.schemaRelationships);

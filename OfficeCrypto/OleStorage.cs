@@ -36,12 +36,17 @@ namespace OfficeOpenXmlCrypto
         }
 
         /// <summary>
-        /// Initialize from an existing file/stream
+        /// Initialize from a byte array.
         /// </summary>
         /// <param name="stream"></param>
-        public OleStorage(Stream stream) 
+        public OleStorage(byte[] storageBytes)
         {
-            PoiFS = new POIFSFileSystem(stream);
+            // Note: POIFS closes the stream after reading it. 
+            // It is undesirable to pass a stream in, as it can't be used any more.
+            using (MemoryStream tempStream = new MemoryStream(storageBytes))
+            {
+                PoiFS = new POIFSFileSystem(tempStream);
+            }
         }
 
         /// <summary>

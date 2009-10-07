@@ -267,9 +267,9 @@ namespace OfficeOpenXmlCrypto
 		/// <param name="filename">A stream of a storage file containing the encrypted package</param>
 		/// <param name="password">The password to decrypt the package</param>
 		/// <returns>System.IO.Packaging.Package instance</returns>
-		public Package DecryptToPackage(Stream stream, string password)
+        public Package DecryptToPackage(byte[] contents, string password)
 		{
-			return CreatePackage(DecryptToArray(stream, password));
+			return CreatePackage(DecryptToArray(contents, password));
 		}
 
 		/// <summary>
@@ -315,9 +315,9 @@ namespace OfficeOpenXmlCrypto
 		/// <param name="filename">A stream of a storage file containing the encrypted package</param>
 		/// <param name="password">The password to decrypt the package</param>
 		/// <returns>System.IO.MemoryStream instance</returns>
-		public MemoryStream DecryptToStream(Stream stream, string password)
+        public MemoryStream DecryptToStream(byte[] contents, string password)
 		{
-			return CreateStream(DecryptToArray(stream, password));
+			return CreateStream(DecryptToArray(contents, password));
 		}
 
 		/// <summary>
@@ -356,24 +356,23 @@ namespace OfficeOpenXmlCrypto
 			return DecryptToArray(stgRoot, password);
 		}
 
-		/// <summary>
-		/// Validates and opens the storage containing the encrypted package.
-		/// Reads the encryption information and encrypted package
-		/// Parses the encryption information
-		/// Generates a decrypytion key and validates it against the password
-		/// Decrypts the encrypted package and creates and Packaging.Package.
-		/// </summary>
-		/// <param name="filename">A stream of a storage file containing the encrypted package</param>
-		/// <param name="password">The password to decrypt the package</param>
-		/// <returns>System.IO.Packaging.Package instance</returns>
-		/// <remarks>Assumes the position is correct</remarks>
-		public byte[] DecryptToArray(Stream stream, string password)
-		{
-			Console.WriteLine("Open the storage");
-			OleStorage stgRoot = new OleStorage(stream);
+        /// <summary>
+        /// Validates and opens the storage containing the encrypted package.
+        /// Reads the encryption information and encrypted package
+        /// Parses the encryption information
+        /// Generates a decrypytion key and validates it against the password
+        /// Decrypts the encrypted package and creates and Packaging.Package.
+        /// </summary>
+        /// <param name="filename">The name of the storage file containing the encrypted package</param>
+        /// <param name="password">The password to decrypt the package</param>
+        /// <returns>System.IO.Packaging.Package instance</returns>
+        public byte[] DecryptToArray(byte[] contents, string password)
+        {
+            Console.WriteLine("Open the storage");
+            OleStorage stgRoot = new OleStorage(contents);
 
-			return DecryptToArray(stgRoot, password);
-		}
+            return DecryptToArray(stgRoot, password);
+        }
 
 		/// <summary>
 		/// Reads the encryption information and encrypted package
@@ -778,7 +777,7 @@ namespace OfficeOpenXmlCrypto
 			else
 			{
 			    Console.WriteLine("Password verification failed");
-			    throw new Exception("The password is not valid");
+			    throw new InvalidPasswordException("The password is not valid");
 			}
 
 			#endregion

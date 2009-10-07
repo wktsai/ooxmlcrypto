@@ -16,61 +16,170 @@ using System.IO;
 namespace OfficeOpenXmlCrypto
 {
     /// <summary>
-    /// TODO: document
-    /// provide examples using Package
+    /// Provides Office 2007 encryption service.
+    /// Usage: pass as a plain-text stream to Package constructor.
     /// </summary>
     public class OfficeCryptoStream : MemoryStream
     {
+        byte[] HeaderEncrypted = new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
+        byte[] HeaderPlaintext = new byte[] { 0x50, 0x4B, 0x03, 0x04 };
+
         String _password = null;
 
         // Encrypted or plaintext stream (of the underlying storage file)
-        readonly Stream Storage;
+        Stream _storage;
+
+        #region Creator methods (helper)
 
         /// <summary>
-        /// Create based on a file.
+        /// Create a new file and stream based on it.
+        /// Set the Password field to encrypt it.
+        /// </summary>
+        /// <param name="newFile">Name of the new file.</param>
+        /// <returns>Empty stream for writing to the file.</returns>
+        public static OfficeCryptoStream Create(String newFile)
+        {
+            return new OfficeCryptoStream(newFile, FileMode.Create, null);
+        }
+
+        /// <summary>
+        /// Open an existing plaintext file.
         /// </summary>
         /// <param name="file"></param>
-        /// <param name="mode"></param>
-        /// <param name="password">Password. Pass null for plaintext.</param>
-        public OfficeCryptoStream(String file, FileMode mode, String password)
+        /// <returns>Stream for accessing the file</returns>
+        /// <throws>InvalidPasswordException if file is encrypted</throws>
+        /// <throws>FileNotFoundException if file does not exist</throws>
+        /// <throws>Other exceptions (FileFormatException, IOException)</throws>
+        public static OfficeCryptoStream Open(String file)
+        {
+            return Open(file, null);
+        }
+
+        /// <summary>
+        /// Open an existing encrypted file. 
+        /// </summary>
+        /// <param name="file">Path to the existing file</param>
+        /// <param name="password">Password to decrypt the file</param>
+        /// <returns>Stream for accessing the file</returns>
+        /// <throws>InvalidPasswordException if password is incorrect</throws>
+        /// <throws>FileNotFoundException if file does not exist</throws>
+        /// <throws>Other exceptions (FileFormatException, IOException)</throws>
+        public static OfficeCryptoStream Open(String file, String password)
+        {
+            if (!File.Exists(file))
+            {
+                throw new FileNotFoundException("", file);
+            }
+            return new OfficeCryptoStream(file, FileMode.Open, password);
+        }
+
+        /// <summary>
+        /// Try to open an encrypted, or plaintext file.
+        /// </summary>
+        /// <param name="file"></param>
+        /// <param name="password"></param>
+        /// <param name="stream"></param>
+        /// <returns>True if file was opened, false otherwise.</returns>
+        public static bool TryOpen(String file, String password, out OfficeCryptoStream stream)
+        {
+            stream = null;
+            try
+            {
+                stream = Open(file, password);
+
+            }
+            catch (InvalidPasswordException)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        #endregion
+
+        private OfficeCryptoStream(String file, FileMode mode, String password)
             : this (new FileStream(file, mode), password) { }
 
         /// <summary>
         /// Create based on a stream.
         /// </summary>
-        /// <param name="stream">Storage stream, usually FileStream</param>
+        /// <param name="storageStream">Storage stream, usually FileStream</param>
         /// <param name="password">Password. Pass null for plaintext.</param>
-        public OfficeCryptoStream(Stream stream, String password)
+        /// <throws>InvalidPasswordException if password is incorrect</throws>
+        /// <throws>FileNotFoundException if file does not exist</throws>
+        /// <throws>FileFormatException: file is in the wrong format</throws>
+        public OfficeCryptoStream(Stream storageStream, String password)
         {
-            Storage = stream;
+            _storage = storageStream;
             Password = password;
 
-            if (stream.Length == 0) 
+            if (storageStream.Length == 0) 
             {
                 // No need to decrypt, stream is already 0-length 
                 return;
             }
 
-            byte[] contents;
-            if (Encrypted)
+            // Check if the file is actually encrypted or plaintext
+            bool isPlain = ContainsHeader(storageStream, HeaderPlaintext);
+            bool isEncrypted = ContainsHeader(storageStream, HeaderEncrypted);
+            if (!isPlain && !isEncrypted)
             {
-                // Decrypt
-                OfficeCrypto oc = new OfficeCrypto();
-                contents = oc.DecryptToArray(stream, password);
-            }
-            else
-            {
-                // Read plaintext
-                contents = new byte[stream.Length];
-                stream.Read(contents, 0, contents.Length);
+                Close(); // In ctor, cannot rely on client/using to close
+                throw new FileFormatException("File is neither plaintext package nor Office 2007 encrypted.");
             }
 
+            // Read the file
+            byte[] contents = new byte[storageStream.Length];
+            storageStream.Read(contents, 0, contents.Length);
+
+            // Decrypt if needed
+            if (isEncrypted)
+            {
+                if (String.IsNullOrEmpty(Password))
+                {
+                    Close(); // In ctor, cannot rely on client/using to close
+                    throw new InvalidPasswordException("Password not provided.");
+                }
+
+                try
+                {
+                    OfficeCrypto oc = new OfficeCrypto();
+                    contents = oc.DecryptToArray(contents, password);
+                }
+                catch (Exception)
+                {
+                    Close(); // In ctor, cannot rely on client/using to close
+                    throw;
+                }
+            }
+
+            // Write out to the memory stream
             base.Write(contents, 0, contents.Length);
             base.Flush();
             base.Position = 0;
+        }
 
-            // TODO: detect wrong password, throw a well-defined exception
-            // TODO: detect wrong file format
+        /// <summary>
+        /// Checks the header without messing up the stream
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="header"></param>
+        /// <returns></returns>
+        static bool ContainsHeader(Stream s, byte[] header)
+        {
+            long pos = s.Position;
+            try 
+            {
+                foreach (byte hb in header)
+                {
+                    if (s.ReadByte() != (int)hb) { return false; }
+                }
+            }
+            finally
+            {
+                s.Position = pos;
+            }
+            return true;
         }
 
         /// <summary>
@@ -101,29 +210,48 @@ namespace OfficeOpenXmlCrypto
         }
 
         /// <summary>
-        /// Close the stream and perform encryption if needed.
+        /// Encrypt and write out to a new file stream.
+        /// NOTE: Don't forget to call Close()
         /// </summary>
-        public override void Close()
+        /// <param name="filename"></param>
+        public void SaveAs(String filename)
         {
-            base.Close();
+            _storage.Close();
+            _storage = new FileStream(filename, FileMode.CreateNew);
+            Save();
+        }
 
-            Storage.Seek(0, SeekOrigin.Begin);
-            Storage.SetLength(0);
-            Storage.Position = 0;
+        /// <summary>
+        /// Encrypt and write out to storage stream.
+        /// NOTE: Don't forget to call Close()
+        /// </summary>
+        public void Save()
+        {
+            _storage.Seek(0, SeekOrigin.Begin);
+            _storage.SetLength(0);
+            _storage.Position = 0;
 
             if (Encrypted)
             {
                 // Encrypt this to the storage stream
                 OfficeCrypto oc = new OfficeCrypto();
-                oc.EncryptToStream(base.ToArray(), Password, Storage); 
+                oc.EncryptToStream(base.ToArray(), Password, _storage);
             }
             else
             {
                 // Just write the contents to storage stream
-                base.WriteTo(Storage);
+                base.WriteTo(_storage);
             }
+        }
 
-            Storage.Close();
+        /// <summary>
+        /// Close the stream and save the file.
+        /// NOTE: Call Save() to encrypt the storage stream. 
+        /// </summary>
+        public override void Close()
+        {
+            base.Close();
+            _storage.Close();
         }
     }
 }
