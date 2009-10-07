@@ -47,7 +47,7 @@ namespace OfficeOpenXml
 	public class ExcelWorksheets : IEnumerable
 	{
 		#region ExcelWorksheets Private Properties
-		private Dictionary<int, ExcelWorksheet> _worksheets;
+		private List<ExcelWorksheet> _worksheets;
 		private ExcelPackage _xlPackage;
 		private XmlNamespaceManager _nsManager;
 		private XmlNode _worksheetsNode;
@@ -78,8 +78,7 @@ namespace OfficeOpenXml
 				_xlPackage.Workbook.WorkbookXml.DocumentElement.AppendChild(_worksheetsNode);
 			}
 
-			_worksheets = new Dictionary<int, ExcelWorksheet>();
-			int positionID = 1;
+			_worksheets = new List<ExcelWorksheet>();
 			foreach (XmlNode sheetNode in _worksheetsNode.ChildNodes)
 			{
 				string name = sheetNode.Attributes["name"].Value;
@@ -107,8 +106,7 @@ namespace OfficeOpenXml
 				Uri uriWorksheet = PackUriHelper.ResolvePartUri(_xlPackage.Workbook.WorkbookUri, sheetRelation.TargetUri);
 				
 				// add worksheet to our collection
-				_worksheets.Add(positionID, new ExcelWorksheet(_xlPackage, relId, name, uriWorksheet, sheetID, hidden));
-				positionID++;
+				_worksheets.Add(new ExcelWorksheet(_xlPackage, relId, name, uriWorksheet, sheetID, hidden));
 			}
 		}
 		#endregion
@@ -131,7 +129,7 @@ namespace OfficeOpenXml
 		/// <returns>An enumerator</returns>
 		public IEnumerator GetEnumerator()
 		{
-			return (_worksheets.Values.GetEnumerator());
+			return (_worksheets.GetEnumerator());
 		}
 
 		#region Add Worksheet
@@ -190,8 +188,7 @@ namespace OfficeOpenXml
 
 			// create a reference to the new worksheet in our collection
 			ExcelWorksheet worksheet = new ExcelWorksheet(_xlPackage, rel.Id, Name, uriWorksheet, sheetID, false);
-			int positionID = _worksheets.Count + 1;
-			_worksheets.Add(positionID, worksheet);
+			_worksheets.Add(worksheet);
 			return worksheet;
 		}
 
@@ -230,7 +227,10 @@ namespace OfficeOpenXml
 		{
 			if (_worksheets.Count == 1)
 				throw new Exception("Error: You are attempting to delete the last worksheet in the workbook.  One worksheet MUST be present in the workbook!");
-			ExcelWorksheet worksheet = _worksheets[positionID];
+            if (positionID < 1)
+                throw new ArgumentException("Index should be 1-based", "positionID");
+            
+            ExcelWorksheet worksheet = _worksheets[positionID - 1];
 
 			// delete the worksheet from the package 
 			_xlPackage.Package.DeletePart(worksheet.WorksheetUri);
@@ -248,41 +248,43 @@ namespace OfficeOpenXml
 					sheetsNode.RemoveChild(sheetNode);
 				}
 			}
-			// delete worksheet from the Dictionary object
-			_worksheets.Remove(positionID);
+
+            // delete worksheet from the list
+			_worksheets.RemoveAt(positionID - 1);
 		}
 		#endregion
 
 		/// <summary>
 		/// Returns the worksheet at the specified position.  
 		/// </summary>
-		/// <param name="PositionID">The position of the worksheet. 1-base</param>
+		/// <param name="positionID">The position of the worksheet. 1-base</param>
 		/// <returns></returns>
-		public ExcelWorksheet this[int PositionID]
+		public ExcelWorksheet this[int positionID]
 		{
 			get
 			{
-				return (_worksheets[PositionID]);
+                if (positionID < 1)
+                    throw new ArgumentException("Index should be 1-based", "positionID");
+
+				return (_worksheets[positionID-1]);
 			}
 		}
 
 		/// <summary>
 		/// Returns the worksheet matching the specified name
 		/// </summary>
+        /// <remarks>If multiple sheets have the same name, returns the first one</remarks>
 		/// <param name="Name">The name of the worksheet</param>
 		/// <returns></returns>
 		public ExcelWorksheet this[string Name]
 		{
 			get
 			{
-				ExcelWorksheet xlWorksheet = null;
-				foreach (ExcelWorksheet worksheet in _worksheets.Values)
+				foreach (ExcelWorksheet worksheet in _worksheets)
 				{
-					if (worksheet.Name == Name)
-						xlWorksheet = worksheet;
+                    if (worksheet.Name == Name) { return worksheet; }
 				}
-				return (xlWorksheet);
-				//throw new Exception(string.Format("ExcelWorksheets Error: Worksheet '{0}' not found!",Name));
+                return null;
 			}
 		}
 
