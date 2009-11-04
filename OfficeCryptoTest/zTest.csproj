@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProductVersion>10.0.20506</ProductVersion>
+    <ProductVersion>9.0.21022</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{4F539FD3-F92F-44A8-86C8-FA64D6AFD2AD}</ProjectGuid>
     <OutputType>Library</OutputType>
@@ -42,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExcelWorksheetsTest.cs" />
+    <Compile Include="ExcelStressTests.cs" />
     <Compile Include="OfficeCryptoStreamTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Worksheet.cs" />

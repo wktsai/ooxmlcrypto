@@ -86,6 +86,14 @@ namespace OfficeOpenXml
 				}
 			}
 		}
+        protected internal ExcelRow(ExcelWorksheet worksheet, XmlElement rowElement)
+        {
+            if (worksheet == null) { throw new NullReferenceException("worksheet"); }
+            if (rowElement == null) { throw new ArgumentNullException("rowElement"); }
+
+            _xlWorksheet = worksheet;
+            _rowElement = rowElement;
+        }
 		#endregion
 
 		/// <summary>

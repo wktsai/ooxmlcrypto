@@ -36,6 +36,7 @@ using System.Xml;
 using System.IO;
 using System.IO.Packaging;
 using System.Configuration;
+using System.Collections.Generic;
 
 namespace OfficeOpenXml
 {
@@ -285,14 +286,74 @@ namespace OfficeOpenXml
 			return (new ExcelCell(this, row, col));
 		}
 
-		/// <summary>
-		/// Provides access to an individual row within the worksheet so you can set its properties.
-		/// </summary>
-		/// <param name="row">The row number in the worksheet</param>
-		/// <returns></returns>
-		public ExcelRow Row(int row)
+        Dictionary<int, ExcelRow> _rows;
+        Dictionary<int, ExcelRow> Rows
+        {
+            get
+            {
+                return _rows ?? (_rows = ReadRows());
+            }
+        }
+        Dictionary<int, ExcelRow> ReadRows()
+        {
+            Dictionary<int, ExcelRow> rows = new Dictionary<int,ExcelRow>();
+            foreach (XmlElement rowElement in WorksheetXml.SelectNodes("//d:sheetData/d:row", NameSpaceManager))
+            {
+                int rowNum = Convert.ToInt32(rowElement.Attributes.GetNamedItem("r").Value);
+                ExcelRow row = new ExcelRow(this, rowElement);
+                rows.Add(rowNum, row);
+            }
+            return rows;
+        }
+        void ShiftRows(int start, int change)
+        {
+            Dictionary<int, ExcelRow> newRows = new Dictionary<int, ExcelRow>();
+            foreach (int rowNum in Rows.Keys)
+            {
+                ExcelRow row = Rows[rowNum];
+                int newRowNum = (rowNum >= start) ? rowNum + 1 : rowNum;
+                newRows.Add(newRowNum, row);
+            }
+            _rows = newRows;
+        }
+
+        /// <summary>
+        /// Create rows (that do not exist), to improve performance.
+        /// </summary>
+        /// <param name="highestRowNum"></param>
+        internal void CreateEmptyRows(int rowCount)
+        {
+            if (Rows.Count != 0) { throw new InvalidOperationException("Must be called before rows are filled"); }
+
+            XmlNode sheetDataNode = WorksheetXml.SelectSingleNode("//d:sheetData", NameSpaceManager);
+            for (int rowNum = 1; rowNum <= rowCount; rowNum++)
+            {
+                if (!Rows.ContainsKey(rowNum))
+                {
+                    // Add element
+                    XmlElement rowElement = WorksheetXml.CreateElement("row", ExcelPackage.schemaMain);
+                    rowElement.SetAttribute("r", rowNum.ToString());
+                    sheetDataNode.AppendChild(rowElement);
+
+                    ExcelRow row = new ExcelRow(this, rowElement);
+                    Rows.Add(rowNum, row);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Provides access to an individual row within the worksheet so you can set its properties.
+        /// </summary>
+        /// <param name="rowNum">The row number in the worksheet</param>
+        /// <returns></returns>
+        public ExcelRow Row(int rowNum)
 		{
-		  return (new ExcelRow(this, row));
+            ExcelRow row;
+            if (Rows.TryGetValue(rowNum, out row)) { return row; }
+
+            row = new ExcelRow(this, rowNum);
+            Rows.Add(rowNum, row);
+            return row;
 		}
 
 		/// <summary>
@@ -491,6 +552,10 @@ namespace OfficeOpenXml
 					rowNode = sheetDataNode.InsertAfter(rowElement, insertAfterRowNode);
 
 			}
+
+            // Update stored rows
+            ShiftRows(position, 1);
+            Rows.Add(position, new ExcelRow(this, rowElement));
 		}
 		#endregion
 
@@ -543,6 +608,10 @@ namespace OfficeOpenXml
 					sheetDataNode.RemoveChild(rowNode);
 				}
 			}
+
+            // Update stored rows
+            Rows.Remove(rowToDelete);
+            ShiftRows(rowToDelete, -1);
 		}
 		#endregion
 

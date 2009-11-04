@@ -137,7 +137,18 @@ namespace OfficeOpenXml
 		/// Adds a blank worksheet with the desired name
 		/// </summary>
 		/// <param name="Name"></param>
-		public ExcelWorksheet Add(string Name)
+        public ExcelWorksheet Add(string Name)
+        {
+            return Add(Name, 0);
+        }
+
+        /// <summary>
+        /// Adds a blank worksheet with the desired name
+        /// </summary>
+        /// <param name="Name"></param>
+        /// <param name="emptyRowCount">Number of empty rows to create (for ~4x better performance)</param>
+        /// <returns></returns>
+        public ExcelWorksheet Add(string Name, int emptyRowCount)
 		{
 			// first find maximum existing sheetID
 			// also check the name is unique - if not throw an error
@@ -189,6 +200,8 @@ namespace OfficeOpenXml
 			// create a reference to the new worksheet in our collection
 			ExcelWorksheet worksheet = new ExcelWorksheet(_xlPackage, rel.Id, Name, uriWorksheet, sheetID, false);
 			_worksheets.Add(worksheet);
+            worksheet.CreateEmptyRows(emptyRowCount);
+
 			return worksheet;
 		}
 
