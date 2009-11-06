@@ -200,11 +200,7 @@ namespace OfficeOpenXml
 						PackagePart partStrings = _xlPackage.Package.CreatePart(SharedStringsUri, @"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml");
 
 						// create the shared strings xml doc (with no entries in it)
-						_xmlSharedStrings = new XmlDocument();
-						XmlElement tagSst = _xmlSharedStrings.CreateElement("sst", ExcelPackage.schemaMain);
-						tagSst.SetAttribute("count", "0");
-						tagSst.SetAttribute("uniqueCount", "0");
-						_xmlSharedStrings.AppendChild(tagSst);
+                        CreateSharedStringsDoc();
 
 						// save it to the package
 						StreamWriter streamStrings = new StreamWriter(partStrings.GetStream(FileMode.Create, FileAccess.Write));
@@ -220,6 +216,16 @@ namespace OfficeOpenXml
 				return (_xmlSharedStrings);
 			}
 		}
+
+        void CreateSharedStringsDoc()
+        {
+            // create the shared strings xml doc (with no entries in it)
+            _xmlSharedStrings = new XmlDocument();
+            XmlElement tagSst = _xmlSharedStrings.CreateElement("sst", ExcelPackage.schemaMain);
+            tagSst.SetAttribute("count", "0");
+            tagSst.SetAttribute("uniqueCount", "0");
+            _xmlSharedStrings.AppendChild(tagSst);
+        }
 		#endregion
 
 		#region StylesXml
@@ -491,6 +497,9 @@ namespace OfficeOpenXml
 
         void WriteSharedStrings()
         {
+            if (SharedStrings.Count == 0) { return; }
+
+            CreateSharedStringsDoc();
             foreach (String str in SharedStrings)
             {
                 XmlElement stringNode = SharedStringsXml.CreateElement("si", ExcelPackage.schemaMain);
