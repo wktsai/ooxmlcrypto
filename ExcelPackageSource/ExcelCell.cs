@@ -136,7 +136,7 @@ namespace OfficeOpenXml
 						if (IsNumeric)
 							_value = _valueRef;
 						else
-							_value = GetSharedString(Convert.ToInt32(_valueRef));
+							_value = _xlWorksheet.xlPackage.Workbook.GetSharedString(Convert.ToInt32(_valueRef));
 					}
 				}
 				return (_value);
@@ -162,7 +162,7 @@ namespace OfficeOpenXml
 				}
 				else
 				{
-					_valueRef = SetSharedString(_value).ToString();
+                    _valueRef = _xlWorksheet.xlPackage.Workbook.SetSharedString(_value).ToString();
 					XmlAttribute attr = _cellElement.Attributes["t"];
 					if (attr == null)
 					{
@@ -449,48 +449,6 @@ namespace OfficeOpenXml
 
 			return !objNotIntPattern.IsMatch(Value) &&
 							objIntPattern.IsMatch(Value);
-		}
-		#endregion
-		
-		#region SharedString methods
-		private int SetSharedString(string Value)
-		{
-			//  Assume the string won't be found (assign it an impossible index):
-			int index = -1;
-
-			//  Check to see if the string already exists. If so, retrieve its index.
-			//  This search is case-sensitive, but Excel stores differently cased
-			//  strings separately within the string file.
-			XmlNode stringNode = _xlWorksheet.xlPackage.Workbook.SharedStringsXml.SelectSingleNode(string.Format("//d:si[d:t='{0}']", Value), _xlWorksheet.NameSpaceManager);
-			if (stringNode == null)
-			{
-				//  You didn't find the string in the table, so add it now.
-				stringNode = _xlWorksheet.xlPackage.Workbook.SharedStringsXml.CreateElement("si", ExcelPackage.schemaMain);
-				XmlElement textNode = _xlWorksheet.xlPackage.Workbook.SharedStringsXml.CreateElement("t", ExcelPackage.schemaMain);
-				textNode.InnerText = Value;
-				stringNode.AppendChild(textNode);
-				_xlWorksheet.xlPackage.Workbook.SharedStringsXml.DocumentElement.AppendChild(stringNode);
-			}
-
-			if (stringNode != null)
-			{
-				//  Retrieve the index of the selected node.
-				//  To do that, count the number of preceding
-				//  nodes by retrieving a reference to those nodes.
-				XmlNodeList nodes = stringNode.SelectNodes("preceding-sibling::d:si", _xlWorksheet.NameSpaceManager);
-				index = nodes.Count;
-			}
-			return (index);
-		}
-
-		private string GetSharedString(int stringID)
-		{
-			string retValue = null;
-			XmlNodeList stringNodes = _xlWorksheet.xlPackage.Workbook.SharedStringsXml.SelectNodes(string.Format("//d:si", stringID), _xlWorksheet.NameSpaceManager);
-			XmlNode stringNode = stringNodes[stringID];
-			if (stringNode != null)
-				retValue = stringNode.InnerText;
-			return (retValue);
 		}
 		#endregion
 

@@ -57,8 +57,7 @@ namespace OfficeOpenXmlCrypto.Test
                 {
                     for (int col = 0; col < cols; col++)
                     {
-                        int val = (row * col) + 1;
-                        ws.Cell(row + 1, col + 1).Value = val.ToString();
+                        ws.Cell(row + 1, col + 1).Value = GetVal(row, col);
                     }
                     if (row % div == 0) { Console.Write("*"); }
                 }
@@ -86,7 +85,7 @@ namespace OfficeOpenXmlCrypto.Test
                     {
                         ExcelCell cell = ws.Cell(row + 1, col + 1);
                         String val = cell.Value;
-                        Assert.AreEqual(((row * col) + 1).ToString(), val, "@" + (row + 1) + ", " + (col + 1));
+                        Assert.AreEqual(GetVal(row, col), cell.Value, "@" + (row + 1) + ", " + (col + 1));
                     }
                     if (row % div == 0) { Console.Write("*"); }
                 }
@@ -95,6 +94,11 @@ namespace OfficeOpenXmlCrypto.Test
                 TimeRestart("Read", ref start);
             }
             Console.WriteLine(" "); // skip
+        }
+
+        static String GetVal(int rowIndex, int colIndex)
+        {
+            return "Val " + (rowIndex * colIndex + 1);
         }
 
         static void TimeRestart(String title, ref TimeSpan start)

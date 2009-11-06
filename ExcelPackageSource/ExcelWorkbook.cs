@@ -35,6 +35,7 @@ using System;
 using System.Xml;
 using System.IO;
 using System.IO.Packaging;
+using System.Collections.Generic;
 
 namespace OfficeOpenXml
 {
@@ -427,7 +428,8 @@ namespace OfficeOpenXml
 			}
 
 			// save the shared strings
-			if (_xmlSharedStrings != null)
+            WriteSharedStrings();
+            if (_xmlSharedStrings != null)
 			{
 				_xlPackage.SavePart(SharedStringsUri, _xmlSharedStrings);
 				_xlPackage.WriteDebugFile(_xmlSharedStrings, "xl", "sharedstrings.xml");
@@ -442,5 +444,85 @@ namespace OfficeOpenXml
 		#endregion
 
 		#endregion
-	} // end Workbook
+
+        #region SharedString methods
+
+        List<String> _sharedStrings;
+        Dictionary<String, int> _sharedStringIndex;
+
+        List<String> SharedStrings
+        {
+            get
+            {
+                if (_sharedStrings == null)
+                {
+                    ReadSharedStrings();
+                }
+                return _sharedStrings;
+            }
+        }
+        Dictionary<String, int> SharedStringIndex
+        {
+            get
+            {
+                if (_sharedStringIndex == null)
+                {
+                    ReadSharedStrings();
+                }
+                return _sharedStringIndex;
+            }
+        }
+
+
+        void ReadSharedStrings()
+        {
+            _sharedStrings = new List<string>();
+            _sharedStringIndex = new Dictionary<string, int>();
+
+            XmlNodeList nodes = SharedStringsXml.SelectNodes("//d:si", _nsManager);
+            for (int stringId = 0; stringId < nodes.Count; stringId++)
+            {
+                XmlNode stringNode = nodes[stringId];
+                String text = stringNode.InnerText;
+                _sharedStrings.Add(text);
+                _sharedStringIndex.Add(text, stringId);
+            }
+        }
+
+        void WriteSharedStrings()
+        {
+            foreach (String str in SharedStrings)
+            {
+                XmlElement stringNode = SharedStringsXml.CreateElement("si", ExcelPackage.schemaMain);
+                XmlElement textNode = SharedStringsXml.CreateElement("t", ExcelPackage.schemaMain);
+                textNode.InnerText = str;
+                stringNode.AppendChild(textNode);
+                SharedStringsXml.DocumentElement.AppendChild(stringNode);
+            }
+        }
+
+        internal int SetSharedString(string value)
+        {
+            int stringId;
+            if (SharedStringIndex.TryGetValue(value, out stringId)) { return stringId; }
+
+            // Add it
+            stringId = SharedStrings.Count;
+            SharedStrings.Add(value);
+            SharedStringIndex.Add(value, stringId);
+
+            return stringId;
+        }
+
+        internal string GetSharedString(int stringId)
+        {
+            if (stringId >= SharedStrings.Count)
+            {
+                return null;
+            }
+            return SharedStrings[stringId];
+        }
+
+        #endregion
+    } // end Workbook
 }
