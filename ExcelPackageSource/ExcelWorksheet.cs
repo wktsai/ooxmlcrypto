@@ -275,15 +275,37 @@ namespace OfficeOpenXml
 		#endregion // END Worksheet Public Properties
 
 		#region Worksheet Public Methods
+
+        /// <summary>
+        /// Provides access to an individual row within the worksheet so you can set its properties.
+        /// </summary>
+        /// <param name="rowNum">The row number in the worksheet</param>
+        /// <returns></returns>
+        public ExcelRow Row(int rowNum)
+        {
+            ExcelRow row;
+            if (Rows.TryGetValue(rowNum, out row)) { return row; }
+
+            row = new ExcelRow(this, rowNum);
+            Rows.Add(rowNum, row);
+            return row;
+        }
+
 		/// <summary>
 		/// Provides access to an individual cell within the worksheet.
 		/// </summary>
-		/// <param name="row">The row number in the worksheet</param>
-		/// <param name="col">The column number in the worksheet</param>
+		/// <param name="rowNum">The row number in the worksheet</param>
+		/// <param name="colNum">The column number in the worksheet</param>
 		/// <returns></returns>
-		public ExcelCell Cell(int row, int col)
+		public ExcelCell Cell(int rowNum, int colNum)
 		{
-			return (new ExcelCell(this, row, col));
+            ExcelRow row = Row(rowNum);
+            ExcelCell cell;
+            if (row.Cells.TryGetValue(colNum, out cell)) { return cell; }
+
+            cell = new ExcelCell(this, rowNum, colNum);
+            row.Cells.Add(colNum, cell);
+            return cell;
 		}
 
         Dictionary<int, ExcelRow> _rows;
@@ -291,10 +313,10 @@ namespace OfficeOpenXml
         {
             get
             {
-                return _rows ?? (_rows = ReadRows());
+                return _rows ?? (_rows = ReadData());
             }
         }
-        Dictionary<int, ExcelRow> ReadRows()
+        Dictionary<int, ExcelRow> ReadData()
         {
             Dictionary<int, ExcelRow> rows = new Dictionary<int,ExcelRow>();
             foreach (XmlElement rowElement in WorksheetXml.SelectNodes("//d:sheetData/d:row", NameSpaceManager))
@@ -302,9 +324,18 @@ namespace OfficeOpenXml
                 int rowNum = Convert.ToInt32(rowElement.Attributes.GetNamedItem("r").Value);
                 ExcelRow row = new ExcelRow(this, rowElement);
                 rows.Add(rowNum, row);
+
+                // Get all cells for the row
+                foreach (XmlElement cellElement in rowElement.SelectNodes("./d:c", NameSpaceManager))
+                {
+                    int colNum = Convert.ToInt32(cellElement.Attributes[ExcelWorksheet.tempColumnNumberTag].Value);
+                    ExcelCell cell = new ExcelCell(this, cellElement, rowNum, colNum);
+                    row.Cells.Add(colNum, cell);
+                }
             }
             return rows;
         }
+
         void ShiftRows(int start, int change)
         {
             Dictionary<int, ExcelRow> newRows = new Dictionary<int, ExcelRow>();
@@ -318,43 +349,36 @@ namespace OfficeOpenXml
         }
 
         /// <summary>
-        /// Create rows (that do not exist), to improve performance.
+        /// Create empty rows and cols to improve performance.
         /// </summary>
-        /// <param name="highestRowNum"></param>
-        internal void CreateEmptyRows(int rowCount)
+        /// <param name="rowCount"></param>
+        /// <param name="colCount"></param>
+        internal void CreateEmptyCells(int rowCount, int colCount)
         {
             if (Rows.Count != 0) { throw new InvalidOperationException("Must be called before rows are filled"); }
 
             XmlNode sheetDataNode = WorksheetXml.SelectSingleNode("//d:sheetData", NameSpaceManager);
             for (int rowNum = 1; rowNum <= rowCount; rowNum++)
             {
-                if (!Rows.ContainsKey(rowNum))
-                {
-                    // Add element
-                    XmlElement rowElement = WorksheetXml.CreateElement("row", ExcelPackage.schemaMain);
-                    rowElement.SetAttribute("r", rowNum.ToString());
-                    sheetDataNode.AppendChild(rowElement);
+                // Add element
+                XmlElement rowElement = WorksheetXml.CreateElement("row", ExcelPackage.schemaMain);
+                rowElement.SetAttribute("r", rowNum.ToString());
+                sheetDataNode.AppendChild(rowElement);
 
-                    ExcelRow row = new ExcelRow(this, rowElement);
-                    Rows.Add(rowNum, row);
+                ExcelRow row = new ExcelRow(this, rowElement);
+                Rows.Add(rowNum, row);
+
+                for(int colNum = 1; colNum <= colCount; colNum++)
+                {
+                    XmlElement cellElement = WorksheetXml.CreateElement("c", ExcelPackage.schemaMain);
+                    cellElement.SetAttribute(ExcelWorksheet.tempColumnNumberTag, colNum.ToString());
+                    rowElement.AppendChild(cellElement);
+
+                    ExcelCell cell = new ExcelCell(this, cellElement, rowNum, colNum);
+                    row.Cells.Add(colNum, cell);
                 }
             }
         }
-
-        /// <summary>
-        /// Provides access to an individual row within the worksheet so you can set its properties.
-        /// </summary>
-        /// <param name="rowNum">The row number in the worksheet</param>
-        /// <returns></returns>
-        public ExcelRow Row(int rowNum)
-		{
-            ExcelRow row;
-            if (Rows.TryGetValue(rowNum, out row)) { return row; }
-
-            row = new ExcelRow(this, rowNum);
-            Rows.Add(rowNum, row);
-            return row;
-		}
 
 		/// <summary>
 		/// Provides access to an individual column within the worksheet so you can set its properties.

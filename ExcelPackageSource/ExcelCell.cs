@@ -63,7 +63,11 @@ namespace OfficeOpenXml
 		/// <param name="row">The row number in the parent worksheet</param>
 		/// <param name="col">The column number in the parent worksheet</param>
 		protected internal ExcelCell(ExcelWorksheet xlWorksheet, int row, int col)
-		{
+            : this (xlWorksheet, null, row, col) { }
+
+        protected internal ExcelCell(ExcelWorksheet xlWorksheet, XmlElement cellElement,
+            int row, int col)
+        {
 			if (row < 1 || col < 1)
 				throw new Exception("ExcelCell Constructor: Negative row and column numbers are not allowed");
 			if (xlWorksheet == null)
@@ -73,8 +77,12 @@ namespace OfficeOpenXml
 			_row = row;
 			_col = col;
 
-			_cellElement = GetOrCreateCellElement(xlWorksheet, row, col);
-		}
+            if (cellElement == null)
+            {
+                cellElement = GetOrCreateCellElement(xlWorksheet, row, col);
+            }
+            _cellElement = cellElement;
+        }
 		#endregion  // END Cell Constructors
 
 		#region ExcelCell Public Properties

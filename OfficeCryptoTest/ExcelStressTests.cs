@@ -43,16 +43,16 @@ namespace OfficeOpenXmlCrypto.Test
 
             // Write
             Console.WriteLine();
-            Console.WriteLine("Writing " + rows + " x " + cols);
+            Console.WriteLine("Test: " + rows + " x " + cols);
+            Console.WriteLine("=======");
+            Console.WriteLine("Writing");
             start = Process.GetCurrentProcess().TotalProcessorTime;
             using (ExcelPackage package = new ExcelPackage(new FileInfo(file)))
             {
                 int div = Math.Max(1, rows / 20);
-                ExcelWorksheet ws = package.Workbook.Worksheets.Add("Stress", rows);
+                ExcelWorksheet ws = package.Workbook.Worksheets.Add("Stress", rows, cols);
 
-                TimeRestart("  Create", ref start);
-                Console.Write("  ");
-
+                TimeRestart("Create", ref start);
                 for (int row = 0; row < rows; row++)
                 {
                     for (int col = 0; col < cols; col++)
@@ -64,25 +64,22 @@ namespace OfficeOpenXmlCrypto.Test
                 }
                 Console.WriteLine("done");
 
-                TimeRestart("  Write", ref start);
+                TimeRestart("Write", ref start);
 
                 package.Save();
             }
-            TimeRestart("  File save", ref start);
+            TimeRestart("Save", ref start);
 
 
             // Read
-            Console.WriteLine();
-            Console.WriteLine("Reading " + rows + " x " + cols);
-
+            Console.WriteLine("Reading");
             start = Process.GetCurrentProcess().TotalProcessorTime;
             using (ExcelPackage package = new ExcelPackage(new FileInfo(file)))
             {
                 int div = Math.Max(1, rows / 20);
                 ExcelWorksheet ws = package.Workbook.Worksheets["Stress"];
 
-                TimeRestart("  File Open", ref start);
-                Console.Write("  ");
+                TimeRestart("Open", ref start);
                 for (int row = 0; row < rows; row++)
                 {
                     for (int col = 0; col < cols; col++)
@@ -95,14 +92,15 @@ namespace OfficeOpenXmlCrypto.Test
                 }
                 Console.WriteLine("done");
 
-                TimeRestart("   Read", ref start);
+                TimeRestart("Read", ref start);
             }
+            Console.WriteLine(" "); // skip
         }
 
         static void TimeRestart(String title, ref TimeSpan start)
         {
             TimeSpan total = Process.GetCurrentProcess().TotalProcessorTime - start;
-            Console.WriteLine(title + " time: " + total.TotalMilliseconds + "ms ");
+            Console.WriteLine(title + ":\t" + total.TotalMilliseconds + "\tms ");
             start = Process.GetCurrentProcess().TotalProcessorTime;
         }
 

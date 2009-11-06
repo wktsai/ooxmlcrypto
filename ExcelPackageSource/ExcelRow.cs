@@ -33,6 +33,7 @@
  */
 using System;
 using System.Xml;
+using System.Collections.Generic;
 
 namespace OfficeOpenXml
 {
@@ -41,6 +42,9 @@ namespace OfficeOpenXml
 	/// </summary>
 	public class ExcelRow
 	{
+        // Cell cache
+        internal readonly Dictionary<int, ExcelCell> Cells = new Dictionary<int,ExcelCell>();
+
 		private ExcelWorksheet _xlWorksheet;
 		private XmlElement _rowElement = null;
 
@@ -49,27 +53,27 @@ namespace OfficeOpenXml
 		/// Creates a new instance of the ExcelRow class. 
 		/// For internal use only!
 		/// </summary>
-		/// <param name="Worksheet">The parent worksheet</param>
+        /// <param name="worksheet">The parent worksheet</param>
 		/// <param name="row">The row number</param>
-		protected internal ExcelRow(ExcelWorksheet Worksheet, int row)
+		protected internal ExcelRow(ExcelWorksheet worksheet, int row)
 		{
-			_xlWorksheet = Worksheet;
+			_xlWorksheet = worksheet;
 
 			//  Search for the existing row
-			_rowElement = (XmlElement) Worksheet.WorksheetXml.SelectSingleNode(string.Format("//d:sheetData/d:row[@r='{0}']", row), _xlWorksheet.NameSpaceManager);
+			_rowElement = (XmlElement) worksheet.WorksheetXml.SelectSingleNode(string.Format("//d:sheetData/d:row[@r='{0}']", row), _xlWorksheet.NameSpaceManager);
 			if (_rowElement == null)
 			{
 				// We didn't find the row, so add a new row element.
 				// HOWEVER we MUST insert new row in the correct position - otherwise Excel 2007 will complain!!!
-				_rowElement = Worksheet.WorksheetXml.CreateElement("row", ExcelPackage.schemaMain);
+				_rowElement = worksheet.WorksheetXml.CreateElement("row", ExcelPackage.schemaMain);
 				_rowElement.SetAttribute("r", row.ToString());
 
 				// now work out where to insert the new row
-				XmlNode sheetDataNode = Worksheet.WorksheetXml.SelectSingleNode("//d:sheetData", _xlWorksheet.NameSpaceManager);
+				XmlNode sheetDataNode = worksheet.WorksheetXml.SelectSingleNode("//d:sheetData", _xlWorksheet.NameSpaceManager);
 				if (sheetDataNode != null)
 				{
 					XmlNode followingRow = null;
-					foreach (XmlNode currentRow in Worksheet.WorksheetXml.SelectNodes("//d:sheetData/d:row", _xlWorksheet.NameSpaceManager))
+					foreach (XmlNode currentRow in worksheet.WorksheetXml.SelectNodes("//d:sheetData/d:row", _xlWorksheet.NameSpaceManager))
 					{
 						int rowFound = Convert.ToInt32(currentRow.Attributes.GetNamedItem("r").Value);
 						if (rowFound > row)
@@ -86,6 +90,7 @@ namespace OfficeOpenXml
 				}
 			}
 		}
+        
         protected internal ExcelRow(ExcelWorksheet worksheet, XmlElement rowElement)
         {
             if (worksheet == null) { throw new NullReferenceException("worksheet"); }
@@ -96,7 +101,7 @@ namespace OfficeOpenXml
         }
 		#endregion
 
-		/// <summary>
+        /// <summary>
 		/// Provides access to the node representing the row.
 		/// For internal use only!
 		/// </summary>
