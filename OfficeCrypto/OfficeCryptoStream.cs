@@ -263,13 +263,14 @@ namespace OfficeOpenXmlCrypto
 
         /// <summary>
         /// Encrypt and write out to a new file stream.
-        /// NOTE: Don't forget to call Close()
+        /// NOTE: Don't forget to call Close().
+        /// If file exists, this overwrites it -- check before calling.
         /// </summary>
         /// <param name="filename"></param>
         public void SaveAs(String filename)
         {
             _storage.Close();
-            _storage = new FileStream(filename, FileMode.CreateNew);
+            _storage = new FileStream(filename, FileMode.Create);
             Save();
         }
 
