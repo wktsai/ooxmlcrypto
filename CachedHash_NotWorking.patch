@@ -1,0 +1,551 @@
+Index: OfficeCrypto/OfficeCrypto.cs
+===================================================================
+--- OfficeCrypto/OfficeCrypto.cs	(revision 5)
++++ OfficeCrypto/OfficeCrypto.cs	(working copy)
+@@ -106,7 +106,8 @@
+ 
+ 			try
+ 			{
+-				Package package = officeCrypto.DecryptToPackage(filename, password);
++                byte[] passwordHash;
++				Package package = officeCrypto.DecryptToPackage(filename, password, out passwordHash);
+ 				Console.WriteLine("Package decrypted and opened");
+ 				return package;
+ 			}
+@@ -252,9 +253,9 @@
+ 		/// <param name="filename">The name of the storage file containing the encrypted package</param>
+ 		/// <param name="password">The password to decrypt the package</param>
+ 		/// <returns>System.IO.Packaging.Package instance</returns>
+-		public Package DecryptToPackage(string filename, string password)
++        public Package DecryptToPackage(string filename, string password, out byte[] passwordHash)
+ 		{
+-			return CreatePackage(DecryptToArray(filename, password));
++			return CreatePackage(DecryptToArray(filename, password, out passwordHash));
+ 		}
+ 
+ 		/// <summary>
+@@ -267,9 +268,9 @@
+ 		/// <param name="filename">A stream of a storage file containing the encrypted package</param>
+ 		/// <param name="password">The password to decrypt the package</param>
+ 		/// <returns>System.IO.Packaging.Package instance</returns>
+-        public Package DecryptToPackage(byte[] contents, string password)
++        public Package DecryptToPackage(byte[] contents, string password, out byte[] passwordHash)
+ 		{
+-			return CreatePackage(DecryptToArray(contents, password));
++			return CreatePackage(DecryptToArray(contents, password, out passwordHash));
+ 		}
+ 
+ 		/// <summary>
+@@ -283,7 +284,8 @@
+ 		/// <returns>System.IO.Packaging.Package instance</returns>
+ 		public Package DecryptToPackage(OleStorage stgRoot, string password)
+ 		{
+-			return CreatePackage(DecryptToArray(stgRoot, password));
++            byte[] passwordHash;
++			return CreatePackage(DecryptToArray(stgRoot, password, out passwordHash));
+ 		}
+ 
+ 		#endregion
+@@ -300,9 +302,9 @@
+ 		/// <param name="filename">The name of the storage file containing the encrypted package</param>
+ 		/// <param name="password">The password to decrypt the package</param>
+ 		/// <returns>System.IO.MemoryStream instance</returns>
+-		public MemoryStream DecryptToStream(string filename, string password)
++        public MemoryStream DecryptToStream(string filename, string password, out byte[] passwordHash)
+ 		{
+-			return CreateStream(DecryptToArray(filename, password));
++			return CreateStream(DecryptToArray(filename, password, out passwordHash));
+ 		}
+ 
+ 		/// <summary>
+@@ -315,9 +317,9 @@
+ 		/// <param name="filename">A stream of a storage file containing the encrypted package</param>
+ 		/// <param name="password">The password to decrypt the package</param>
+ 		/// <returns>System.IO.MemoryStream instance</returns>
+-        public MemoryStream DecryptToStream(byte[] contents, string password)
++        public MemoryStream DecryptToStream(byte[] contents, string password, out byte[] passwordHash)
+ 		{
+-			return CreateStream(DecryptToArray(contents, password));
++            return CreateStream(DecryptToArray(contents, password, out passwordHash));
+ 		}
+ 
+ 		/// <summary>
+@@ -329,9 +331,9 @@
+ 		/// <param name="filename">The storage file containing the encrypted package</param>
+ 		/// <param name="password">The password to decrypt the package</param>
+ 		/// <returns>System.IO.MemoryStream instance</returns>
+-		public MemoryStream DecryptToStream(OleStorage stgRoot, string password)
++        public MemoryStream DecryptToStream(OleStorage stgRoot, string password, out byte[] passwordHash)
+ 		{
+-			return CreateStream(DecryptToArray(stgRoot, password));
++			return CreateStream(DecryptToArray(stgRoot, password, out passwordHash));
+ 		}
+ 
+ 		#endregion
+@@ -348,12 +350,12 @@
+ 		/// <param name="filename">The name of the storage file containing the encrypted package</param>
+ 		/// <param name="password">The password to decrypt the package</param>
+ 		/// <returns>System.IO.Packaging.Package instance</returns>
+-		public byte[] DecryptToArray(string filename, string password)
++		public byte[] DecryptToArray(string filename, string password, out byte[] passwordHash)
+ 		{
+ 			Console.WriteLine("Open the storage");			
+             OleStorage stgRoot = new OleStorage(filename);
+ 
+-			return DecryptToArray(stgRoot, password);
++			return DecryptToArray(stgRoot, password, out passwordHash);
+ 		}
+ 
+         /// <summary>
+@@ -366,12 +368,12 @@
+         /// <param name="filename">The name of the storage file containing the encrypted package</param>
+         /// <param name="password">The password to decrypt the package</param>
+         /// <returns>System.IO.Packaging.Package instance</returns>
+-        public byte[] DecryptToArray(byte[] contents, string password)
++        public byte[] DecryptToArray(byte[] contents, string password, out byte[] passwordHash)
+         {
+             Console.WriteLine("Open the storage");
+             OleStorage stgRoot = new OleStorage(contents);
+ 
+-            return DecryptToArray(stgRoot, password);
++            return DecryptToArray(stgRoot, password, out passwordHash);
+         }
+ 
+ 		/// <summary>
+@@ -382,8 +384,9 @@
+ 		/// </summary>
+ 		/// <param name="filename">The storage file containing the encrypted package</param>
+ 		/// <param name="password">The password to decrypt the package</param>
++        /// <param name="passwordHash">Password hash that can be stored for performance</param>
+ 		/// <returns>System.IO.Packaging.Package instance</returns>
+-		public byte[] DecryptToArray(OleStorage stgRoot, string password)
++		public byte[] DecryptToArray(OleStorage stgRoot, string password, out byte[] passwordHash)
+ 		{
+             // TODO: check if the EncryptedPackage exists (if it's a valid doc)
+             encryptedPackage = stgRoot.ReadStream(csEncryptedPackageStreamName);
+@@ -392,7 +395,7 @@
+             byte[] encryptionInfo = stgRoot.ReadStream(csEncryptionInfoStreamName);
+ 
+ 			// Delegate the rest to this common function
+-			return DecryptInternal(password, encryptionInfo, encryptedPackage);
++            return DecryptInternal(password, encryptionInfo, encryptedPackage, out passwordHash);
+ 		}
+ 
+ 		#endregion
+@@ -410,7 +413,9 @@
+         {
+             byte[] encryptionInfo;
+             byte[] encryptedPackage;
+-            EncryptPackage(packageContents, password, out encryptionInfo, out encryptedPackage);
++            byte[] passwordHash;
++            EncryptPackage(packageContents, password,
++                out passwordHash, out encryptionInfo, out encryptedPackage);
+ 
+             OleStorage storage = new OleStorage();
+             storage.WriteStream(csEncryptionInfoStreamName, encryptionInfo);
+@@ -424,11 +429,13 @@
+         /// <param name="packageContents">Plaintext contents of the package.</param>
+         /// <param name="password">Password to use to encrypt.</param>
+         /// <param name="encryptedFilename">Name of the encrypted stream write to</param>
+-        public void EncryptToStream(byte[] packageContents, string password, Stream encryptedStream)
++        public void EncryptToStream(byte[] packageContents, string password, 
++            out byte[] passwordHash, Stream encryptedStream)
+         {
+             byte[] encryptionInfo;
+             byte[] encryptedPackage;
+-            EncryptPackage(packageContents, password, out encryptionInfo, out encryptedPackage);
++            EncryptPackage(packageContents, password,
++                out passwordHash, out encryptionInfo, out encryptedPackage);
+ 
+             OleStorage storage = new OleStorage();
+             storage.WriteStream(csEncryptionInfoStreamName, encryptionInfo);
+@@ -436,7 +443,25 @@
+             storage.Save(encryptedStream);
+         }
+ 
++        /// <summary>
++        /// Encrypt package to a stream, using the given hash
++        /// </summary>
++        /// <param name="packageContents"></param>
++        /// <param name="passwordHash"></param>
++        /// <param name="encryptedStream"></param>        
++        public void EncryptToStream(byte[] packageContents, byte[] passwordHash, Stream encryptedStream)
++        {
++            byte[] encryptionInfo;
++            byte[] encryptedPackage;
++            EncryptPackage(packageContents, passwordHash, 
++                out encryptionInfo, out encryptedPackage);
+ 
++            OleStorage storage = new OleStorage();
++            storage.WriteStream(csEncryptionInfoStreamName, encryptionInfo);
++            storage.WriteStream(csEncryptedPackageStreamName, encryptedPackage);
++            storage.Save(encryptedStream);
++        }
++
+         #endregion
+ 
+         #region Public methods
+@@ -451,7 +476,7 @@
+ 		/// <param name="encryptionInfo">An array of bytes containing the encrption info</param>
+ 		/// <param name="encryptedPackage">The encrpyted package</param>
+ 		/// <returns></returns>
+-		public void EncryptPackage(string filename, string password, out byte[] encryptionInfo, out byte[] encryptedPackage)
++		private void EncryptPackage(string filename, string password, out byte[] encryptionInfo, out byte[] encryptedPackage)
+ 		{
+ 			if (!File.Exists(filename)) throw new ArgumentException("Package file does not exist");
+ 
+@@ -463,7 +488,8 @@
+ 				fs.Read(packageContents, 0, packageContents.Length);
+ 			}
+ 
+-			EncryptPackage(packageContents, password, out encryptionInfo, out encryptedPackage);
++            byte[] hash;
++			EncryptPackage(packageContents, password, out hash, out encryptionInfo, out encryptedPackage);
+ 		}
+ 
+ 		/// <summary>
+@@ -473,109 +499,137 @@
+ 		/// </summary>
+ 		/// <param name="packageContents">The package (zip) file to be encrypted</param>
+ 		/// <param name="password">The password to decrypt the package</param>
+-		/// <param name="encryptionInfo">An array of bytes containing the encrption info</param>
++        /// <param name="encryptionInfo">An array of bytes containing the encrption info</param>
+ 		/// <param name="encryptedPackage">The encrpyted package</param>
+ 		/// <returns></returns>
+-		public void EncryptPackage(byte[] packageContents, string password, out byte[] encryptionInfo, out byte[] encryptedPackage)
++		private void EncryptPackage(byte[] packageContents, 
++            string password, 
++            out byte[] passwordHash, out byte[] encryptionInfo, out byte[] encryptedPackage)
+ 		{
+-			versionMajor = 3;
+-			versionMinor = 2;
++            CreateSalt();
++			
++			// Generate a key from salt and password
++            passwordHash = GeneratePasswordHashUsingSHA1(password);
+ 
+-			// Console.WriteLine(password);
++            EncryptPackageCore(packageContents, passwordHash, out encryptionInfo, out encryptedPackage);
++		}
+ 
+-			// this.algId = AlgId.AES256;
+-			// this.keySize = 0x100;
++        /// <summary>
++        /// Encrypt a package using the supplied hash (to improve performance)
++        /// </summary>
++        /// <param name="packageContents"></param>
++        /// <param name="passwordHash"></param>
++        /// <param name="encryptionInfo"></param>
++        /// <param name="encryptedPackage"></param>
++        private void EncryptPackage(byte[] packageContents,
++            byte[] passwordHash,
++            out byte[] encryptionInfo, out byte[] encryptedPackage)
++        {
++            CreateSalt();
++            EncryptPackageCore(packageContents, passwordHash, out encryptionInfo, out encryptedPackage);
++        }
+ 
+-			// Generate a salt
+-			System.Security.Cryptography.RijndaelManaged aes = new System.Security.Cryptography.RijndaelManaged();
+-			saltSize = 0x10;
+-			byte[] tempSalt = SHA1Hash(aes.IV);
+-			aes = null;
+-			this.verifierHashSize = tempSalt.Length;
++        private void CreateSalt()
++        {
++            versionMajor = 3;
++            versionMinor = 2;
+ 
+-			salt = new byte[saltSize];
+-			Array.Copy(tempSalt, salt, saltSize);
+-			
+-			// Generate a key from salt and password
+-			byte[] key = GeneratePasswordHashUsingSHA1(password);
++            // Console.WriteLine(password);
+ 
+-			CreateVerifier(key);
++            // this.algId = AlgId.AES256;
++            // this.keySize = 0x100;
+ 
+-			int originalLength = packageContents.Length;
++            // Generate a salt
++            System.Security.Cryptography.RijndaelManaged aes = new System.Security.Cryptography.RijndaelManaged();
++            saltSize = 0x10;
++            byte[] tempSalt = SHA1Hash(aes.IV);
++            aes = null;
++            this.verifierHashSize = tempSalt.Length;
+ 
+-			// Pad the array to the nearest 16 byte boundary
+-			int remainder = packageContents.Length % 0x10;
+-			if (remainder != 0)
+-			{
+-				byte[] tempContents = new byte[packageContents.Length + 0x10 - remainder];
+-				Array.Copy(packageContents, tempContents, packageContents.Length);
+-				packageContents = tempContents;
+-			}
++            salt = new byte[saltSize];
++            Array.Copy(tempSalt, salt, saltSize);
++        }
++        private void EncryptPackageCore(byte[] packageContents, byte[] key,
++            out byte[] encryptionInfo, out byte[] encryptedPackage)
++        {
++            CreateVerifier(key);
+ 
+-			byte[] encryptionResult = AESEncrypt(packageContents, key);
++            int originalLength = packageContents.Length;
+ 
+-			// Need to prepend the original package size as a Int64 (8 byte) field
+-			encryptedPackage = new byte[encryptionResult.Length +  8];
+-			// MUST record the original length here
+-			Array.Copy(BitConverter.GetBytes((long)originalLength), encryptedPackage, 8);  
+-			Array.Copy(encryptionResult, 0, encryptedPackage, 8, encryptionResult.Length);
++            // Pad the array to the nearest 16 byte boundary
++            int remainder = packageContents.Length % 0x10;
++            if (remainder != 0)
++            {
++                byte[] tempContents = new byte[packageContents.Length + 0x10 - remainder];
++                Array.Copy(packageContents, tempContents, packageContents.Length);
++                packageContents = tempContents;
++            }
+ 
+-			byte[] encryptionHeader = null;
++            byte[] encryptionResult = AESEncrypt(packageContents, key);
+ 
+-			// Generate the encryption header structure
+-			using (System.IO.MemoryStream ms = new System.IO.MemoryStream())
+-			{
+-				System.IO.BinaryWriter br = new System.IO.BinaryWriter(ms);
+-				br.Write((int)this.encryptionFlags);
+-				br.Write((int)this.sizeExtra);
+-				br.Write((int)this.algId);
+-				br.Write((int)this.algHashId);
+-				br.Write((int)this.keySize);
+-				br.Write((int)this.providerType);
+-				br.Write(new byte[] { 0xA0, 0xC7, 0xDC, 0x02, 0x00, 0x00, 0x00, 0x00 } );
+-				br.Write(System.Text.UnicodeEncoding.Unicode.GetBytes("Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)\0"));
++            // Need to prepend the original package size as a Int64 (8 byte) field
++            encryptedPackage = new byte[encryptionResult.Length + 8];
++            // MUST record the original length here
++            Array.Copy(BitConverter.GetBytes((long)originalLength), encryptedPackage, 8);
++            Array.Copy(encryptionResult, 0, encryptedPackage, 8, encryptionResult.Length);
+ 
+-				ms.Flush();
+-				encryptionHeader = ms.ToArray();
+-			}
++            byte[] encryptionHeader = null;
+ 
+-			byte[] encryptionVerifier = null;
++            // Generate the encryption header structure
++            using (System.IO.MemoryStream ms = new System.IO.MemoryStream())
++            {
++                System.IO.BinaryWriter br = new System.IO.BinaryWriter(ms);
++                br.Write((int)this.encryptionFlags);
++                br.Write((int)this.sizeExtra);
++                br.Write((int)this.algId);
++                br.Write((int)this.algHashId);
++                br.Write((int)this.keySize);
++                br.Write((int)this.providerType);
++                br.Write(new byte[] { 0xA0, 0xC7, 0xDC, 0x02, 0x00, 0x00, 0x00, 0x00 });
++                br.Write(System.Text.UnicodeEncoding.Unicode.GetBytes("Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)\0"));
+ 
+-			// Generate the encryption header structure
+-			using (System.IO.MemoryStream ms = new System.IO.MemoryStream())
+-			{
+-				System.IO.BinaryWriter br = new System.IO.BinaryWriter(ms);
+-				br.Write((int)salt.Length);
+-				br.Write(this.salt);
+-				br.Write(this.encryptedVerifier);
+-				br.Write(this.verifierHashSize); // Hash length
+-				br.Write(this.encryptedVerifierHash);
++                ms.Flush();
++                encryptionHeader = ms.ToArray();
++            }
+ 
+-				ms.Flush();
+-				encryptionVerifier = ms.ToArray();
+-			}
++            byte[] encryptionVerifier = null;
+ 
+-			// Now generate the encryption info structure
+-			using (System.IO.MemoryStream ms = new System.IO.MemoryStream())
+-			{
+-				System.IO.BinaryWriter br = new System.IO.BinaryWriter(ms);
+-				br.Write(versionMajor);
+-				br.Write(versionMinor);
+-				br.Write((int)this.encryptionFlags);
+-				br.Write((int)encryptionHeader.Length);
+-				br.Write(encryptionHeader);
+-				br.Write(encryptionVerifier);
++            // Generate the encryption header structure
++            using (System.IO.MemoryStream ms = new System.IO.MemoryStream())
++            {
++                System.IO.BinaryWriter br = new System.IO.BinaryWriter(ms);
++                br.Write((int)salt.Length);
++                br.Write(this.salt);
++                br.Write(this.encryptedVerifier);
++                br.Write(this.verifierHashSize); // Hash length
++                br.Write(this.encryptedVerifierHash);
+ 
+-				ms.Flush();
+-				encryptionInfo = ms.ToArray();
+-			}
++                ms.Flush();
++                encryptionVerifier = ms.ToArray();
++            }
+ 
+-			// Console.WriteLine( Lyquidity.OLEStorage.Utilities.FormatData(encryptionInfo, 128, 0) );
+-		}
++            // Now generate the encryption info structure
++            using (System.IO.MemoryStream ms = new System.IO.MemoryStream())
++            {
++                System.IO.BinaryWriter br = new System.IO.BinaryWriter(ms);
++                br.Write(versionMajor);
++                br.Write(versionMinor);
++                br.Write((int)this.encryptionFlags);
++                br.Write((int)encryptionHeader.Length);
++                br.Write(encryptionHeader);
++                br.Write(encryptionVerifier);
+ 
++                ms.Flush();
++                encryptionInfo = ms.ToArray();
++            }
++
++            // Console.WriteLine( Lyquidity.OLEStorage.Utilities.FormatData(encryptionInfo, 128, 0) );
++        }
++
+ 		public void TestEncrytion(string password, byte[] encryptionInfo, byte[] encryptedPackage)
+ 		{
+-			byte[] array = DecryptInternal(password, encryptionInfo, encryptedPackage);
++            byte[] passwordHash;
++			byte[] array = DecryptInternal(password, encryptionInfo, encryptedPackage, out passwordHash);
+ 		}
+ 
+ 		#endregion
+@@ -722,7 +776,10 @@
+ 
+ 		#endregion
+ 
+-		internal byte[] DecryptInternal(string password, byte[] encryptionInfo, byte[] encryptedPackage)
++		internal byte[] DecryptInternal(string password, 
++            byte[] encryptionInfo, 
++            byte[] encryptedPackage, 
++            out byte[] passwordHash)
+ 		{
+ 			#region Parse the encryption info data
+ 
+@@ -762,15 +819,15 @@
+ 			#region Encryption key generation
+ 
+ 			Console.WriteLine("Encryption key generation");
+-			byte[] encryptionKey = GeneratePasswordHashUsingSHA1(password);
+-			if (encryptionKey == null) return null;
++			passwordHash = GeneratePasswordHashUsingSHA1(password);
++			if (passwordHash == null) return null;
+ 
+ 			#endregion
+ 
+ 			#region Password verification
+ 
+ 			Console.WriteLine("Password verification");
+-			if (PasswordVerifier(encryptionKey))
++			if (PasswordVerifier(passwordHash))
+ 			{
+ 			    Console.WriteLine("Password verification succeeded");
+ 			} 
+@@ -789,7 +846,7 @@
+ 
+ 			// Decrypt the stream using the generated and validated key
+ 			Console.WriteLine("Decrypt the stream using the generated and validated key");
+-			encryptedPackage = AESDecrypt(encryptedPackage, 8, encryptedPackage.Length-8, encryptionKey);
++			encryptedPackage = AESDecrypt(encryptedPackage, 8, encryptedPackage.Length-8, passwordHash);
+ 
+ 			// !! IMPORTANT !! Make sure the final array is the correct size
+ 			// Failure to do this will cause an error when the decrypted stream
+Index: OfficeCrypto/OfficeCryptoStream.cs
+===================================================================
+--- OfficeCrypto/OfficeCryptoStream.cs	(revision 15)
++++ OfficeCrypto/OfficeCryptoStream.cs	(working copy)
+@@ -2,6 +2,7 @@
+ using System.Collections.Generic;
+ using System.Text;
+ using System.IO;
++using System.Diagnostics;
+ 
+ /*
+  * Wrapper coded by Danilo Mirkovic, Oct 2009
+@@ -27,6 +28,7 @@
+             HeaderPlaintext = new byte[] { 0x50, 0x4B, 0x03, 0x04 };
+ 
+         String _password = null;
++        byte[] _passwordHash = null;
+ 
+         // Encrypted or plaintext stream (of the underlying storage file)
+         Stream _storage;
+@@ -146,7 +148,7 @@
+                 try
+                 {
+                     OfficeCrypto oc = new OfficeCrypto();
+-                    contents = oc.DecryptToArray(contents, password);
++                    contents = oc.DecryptToArray(contents, password, out _passwordHash);
+                 }
+                 catch (Exception)
+                 {
+@@ -257,6 +259,8 @@
+                 {
+                     throw new InvalidOperationException("Cannot set password. Underlying stream does not support seek or write. Make sure it was not closed.");
+                 }
++
++                if (value != _password) { _passwordHash = null; }
+                 _password = value; 
+             }
+         }
+@@ -288,7 +292,15 @@
+             {
+                 // Encrypt this to the storage stream
+                 OfficeCrypto oc = new OfficeCrypto();
+-                oc.EncryptToStream(base.ToArray(), Password, _storage);
++                if (_passwordHash != null)
++                {
++                    Trace.WriteLine("Using cached password hash.");
++                    oc.EncryptToStream(base.ToArray(), _passwordHash, _storage);
++                }
++                else
++                {
++                    oc.EncryptToStream(base.ToArray(), Password, out _passwordHash, _storage);
++                }
+             }
+             else
+             {
+Index: OfficeCryptoTest/OfficeCryptoStreamTest.cs
+===================================================================
+--- OfficeCryptoTest/OfficeCryptoStreamTest.cs	(revision 7)
++++ OfficeCryptoTest/OfficeCryptoStreamTest.cs	(working copy)
+@@ -164,6 +164,8 @@
+             }
+         }
+ 
++
++
+         /*
+          *         private void button1_Click(object sender, EventArgs e)
+         {
+Index: OfficeOpenXmlCryptoVS2008.sln
+===================================================================
+--- OfficeOpenXmlCryptoVS2008.sln	(revision 10)
++++ OfficeOpenXmlCryptoVS2008.sln	(working copy)
+@@ -28,6 +28,7 @@
+ 		{7B288026-5502-4A39-BF41-77E086F3E4A3}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+ 		{7B288026-5502-4A39-BF41-77E086F3E4A3}.Release|x86.ActiveCfg = Release|Any CPU
+ 		{5D683B81-C2A6-4595-A0E9-7FF2ECC41632}.Debug|Any CPU.ActiveCfg = Debug|x86
++		{5D683B81-C2A6-4595-A0E9-7FF2ECC41632}.Debug|Any CPU.Build.0 = Debug|x86
+ 		{5D683B81-C2A6-4595-A0E9-7FF2ECC41632}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+ 		{5D683B81-C2A6-4595-A0E9-7FF2ECC41632}.Debug|Mixed Platforms.Build.0 = Debug|x86
+ 		{5D683B81-C2A6-4595-A0E9-7FF2ECC41632}.Debug|x86.ActiveCfg = Debug|x86
+@@ -38,6 +39,7 @@
+ 		{5D683B81-C2A6-4595-A0E9-7FF2ECC41632}.Release|x86.ActiveCfg = Release|x86
+ 		{5D683B81-C2A6-4595-A0E9-7FF2ECC41632}.Release|x86.Build.0 = Release|x86
+ 		{4F539FD3-F92F-44A8-86C8-FA64D6AFD2AD}.Debug|Any CPU.ActiveCfg = Debug|x86
++		{4F539FD3-F92F-44A8-86C8-FA64D6AFD2AD}.Debug|Any CPU.Build.0 = Debug|x86
+ 		{4F539FD3-F92F-44A8-86C8-FA64D6AFD2AD}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+ 		{4F539FD3-F92F-44A8-86C8-FA64D6AFD2AD}.Debug|Mixed Platforms.Build.0 = Debug|x86
+ 		{4F539FD3-F92F-44A8-86C8-FA64D6AFD2AD}.Debug|x86.ActiveCfg = Debug|x86
