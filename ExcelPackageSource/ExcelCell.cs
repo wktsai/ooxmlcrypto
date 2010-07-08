@@ -35,6 +35,7 @@ using System;
 using System.Xml;
 using System.Text.RegularExpressions;
 using System.IO.Packaging;
+using System.Text;
 
 namespace OfficeOpenXml
 {
@@ -525,42 +526,28 @@ namespace OfficeOpenXml
 		#region ExcelCell Static Cell Address Manipulation Routines
 
 		#region GetColumnLetter
-		/// <summary>
-		/// Returns the character representation of the numbered column
-		/// </summary>
-		/// <param name="iColumnNumber">The number of the column</param>
-		/// <returns>The letter representing the column</returns>
-		protected internal static string GetColumnLetter(int iColumnNumber)
-		{
-			int iMainLetterUnicode;
-			char iMainLetterChar;
 
-			// TODO: we need to cater for columns larger than ZZ
-			if (iColumnNumber > 26)
-			{
-				int iFirstLetterUnicode = 0;  // default
-				int iFirstLetter = Convert.ToInt32(iColumnNumber / 26);
-				char iFirstLetterChar;
-				if (Convert.ToDouble(iFirstLetter) == (Convert.ToDouble(iColumnNumber) / 26))
-				{
-					iFirstLetterUnicode = iFirstLetter - 1 + 64;
-					iMainLetterChar = 'Z';
-				}
-				else
-				{
-					iFirstLetterUnicode = iFirstLetter + 64;
-					iMainLetterUnicode = (iColumnNumber - (iFirstLetter * 26)) + 64;
-					iMainLetterChar = (char)iMainLetterUnicode;
-				}
-				iFirstLetterChar = (char)iFirstLetterUnicode;
+        /// <summary>
+        /// Returns the string representation of the numbered column
+        /// e.g. 1 -> A, 27 -> AA, 702 -> ZZ
+        /// </summary>
+        /// <param name="iColumnNumber">The number of the column</param>
+        /// <returns>The letter representing the column</returns>
+        public static string GetColumnLetter(int iColumnNumber)
+        {
+            if (iColumnNumber <= 0) { throw new ArgumentException("iColumnNumber <= 0"); }
 
-				return (iFirstLetterChar.ToString() + iMainLetterChar.ToString());
-			}
-			// if we get here we only have a single letter to return
-			iMainLetterUnicode = 64 + iColumnNumber;
-			iMainLetterChar = (char)iMainLetterUnicode;
-			return (iMainLetterChar.ToString());
-		}
+            String name = "";
+            while (iColumnNumber > 0)
+            {
+                int letterIndex = (iColumnNumber - 1) % 26;
+                name = (char)(letterIndex + (int)'A') + name;
+                iColumnNumber = (iColumnNumber-1) / 26;
+            }
+            return name;
+        }
+        
+
 		#endregion
 
 		#region GetColumnNumber
