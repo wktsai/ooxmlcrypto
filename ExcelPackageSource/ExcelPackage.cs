@@ -95,6 +95,7 @@ namespace OfficeOpenXml
             {
                 // open the existing package
                 _package = Package.Open(newFile.FullName, FileMode.Open, FileAccess.ReadWrite);
+                
             }
             else
             {
@@ -110,7 +111,7 @@ namespace OfficeOpenXml
 
             // save a temporary part to create the default application/xml content type
             Uri uriDefaultContentType = new Uri("/default.xml", UriKind.Relative);
-            PackagePart partTemp = _package.CreatePart(uriDefaultContentType, "application/xml");
+            PackagePart partTemp = _package.CreatePart(uriDefaultContentType, "application/xml", CompressionOption.Normal);
 
             XmlDocument workbook = Workbook.WorkbookXml; // this will create the workbook xml in the package
 

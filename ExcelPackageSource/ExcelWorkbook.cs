@@ -149,7 +149,7 @@ namespace OfficeOpenXml
 					else
 					{
 						// create a new workbook part and add to the package
-						PackagePart partWorkbook = _xlPackage.Package.CreatePart(WorkbookUri, @"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml");
+						PackagePart partWorkbook = _xlPackage.Package.CreatePart(WorkbookUri, @"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml", CompressionOption.Normal);
 
 						// create the workbook
 						_xmlWorkbook = new XmlDocument();
@@ -197,7 +197,7 @@ namespace OfficeOpenXml
 					else
 					{
 						// create a new sharedStrings part and add to the package
-						PackagePart partStrings = _xlPackage.Package.CreatePart(SharedStringsUri, @"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml");
+                        PackagePart partStrings = _xlPackage.Package.CreatePart(SharedStringsUri, @"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml", CompressionOption.Normal);
 
 						// create the shared strings xml doc (with no entries in it)
                         CreateSharedStringsDoc();
@@ -243,7 +243,7 @@ namespace OfficeOpenXml
 					else
 					{
 						// create a new styles part and add to the package
-						PackagePart partSyles = _xlPackage.Package.CreatePart(StylesUri, @"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml");
+                        PackagePart partSyles = _xlPackage.Package.CreatePart(StylesUri, @"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml", CompressionOption.Normal);
 
 						// create the style sheet
 						_xmlStyles = new XmlDocument();

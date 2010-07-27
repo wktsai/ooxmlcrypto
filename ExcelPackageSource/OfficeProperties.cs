@@ -127,7 +127,7 @@ namespace OfficeOpenXml
 					else
 					{
 						// create a new document properties part and add to the package
-						PackagePart partCore = _xlPackage.Package.CreatePart(CorePropertiesUri, @"application/vnd.openxmlformats-package.core-properties+xml");
+                        PackagePart partCore = _xlPackage.Package.CreatePart(CorePropertiesUri, @"application/vnd.openxmlformats-package.core-properties+xml", CompressionOption.Normal);
 
 						// create the document properties XML (with no entries in it)
 						_xmlPropertiesCore = new XmlDocument();
@@ -305,7 +305,7 @@ namespace OfficeOpenXml
 					else
 					{
 						// create a new extended properties part and add to the package
-						PackagePart partExtended = _xlPackage.Package.CreatePart(ExtendedPropertiesUri, @"application/vnd.openxmlformats-officedocument.extended-properties+xml");
+                        PackagePart partExtended = _xlPackage.Package.CreatePart(ExtendedPropertiesUri, @"application/vnd.openxmlformats-officedocument.extended-properties+xml", CompressionOption.Normal);
 
 						// create the extended properties XML (with no entries in it)
 						_xmlPropertiesExtended = new XmlDocument();
@@ -417,7 +417,7 @@ namespace OfficeOpenXml
 					else
 					{
 						// create a new extended properties part and add to the package
-						PackagePart partCustom = _xlPackage.Package.CreatePart(CustomPropertiesUri, @"application/vnd.openxmlformats-officedocument.custom-properties+xml");
+                        PackagePart partCustom = _xlPackage.Package.CreatePart(CustomPropertiesUri, @"application/vnd.openxmlformats-officedocument.custom-properties+xml", CompressionOption.Normal);
 
 						// create the extended properties XML (with no entries in it)
 						_xmlPropertiesCustom = new XmlDocument();

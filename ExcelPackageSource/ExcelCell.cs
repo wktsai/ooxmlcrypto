@@ -66,6 +66,13 @@ namespace OfficeOpenXml
 		protected internal ExcelCell(ExcelWorksheet xlWorksheet, int row, int col)
             : this (xlWorksheet, null, row, col) { }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="xlWorksheet"></param>
+        /// <param name="cellElement"></param>
+        /// <param name="row"></param>
+        /// <param name="col"></param>
         protected internal ExcelCell(ExcelWorksheet xlWorksheet, XmlElement cellElement,
             int row, int col)
         {

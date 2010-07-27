@@ -147,7 +147,7 @@ namespace OfficeOpenXml
         /// </summary>
         /// <param name="Name"></param>
         /// <param name="rowCount">Number of rows to to create initially (for performance)</param>
-        /// <param name="rowCount">Number of columns to to create</param>
+        /// <param name="colCount">Number of columns to to create</param>
         /// <returns></returns>
         public ExcelWorksheet Add(string Name, int rowCount, int colCount)
 		{
@@ -175,7 +175,7 @@ namespace OfficeOpenXml
 
 			// add the new worksheet to the package
 			Uri uriWorksheet = new Uri("/xl/worksheets/sheet" + sheetID.ToString() + ".xml", UriKind.Relative);
-			PackagePart worksheetPart = _xlPackage.Package.CreatePart(uriWorksheet, @"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml");
+            PackagePart worksheetPart = _xlPackage.Package.CreatePart(uriWorksheet, @"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml", CompressionOption.Normal);
 
 			// create the new, empty worksheet and save it to the package
 			StreamWriter streamWorksheet = new StreamWriter(worksheetPart.GetStream(FileMode.Create, FileAccess.Write));

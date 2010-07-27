@@ -91,6 +91,11 @@ namespace OfficeOpenXml
 			}
 		}
         
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="rowElement"></param>
         protected internal ExcelRow(ExcelWorksheet worksheet, XmlElement rowElement)
         {
             if (worksheet == null) { throw new NullReferenceException("worksheet"); }
