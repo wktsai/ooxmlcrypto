@@ -10,15 +10,16 @@ namespace OfficeOpenXmlCrypto.Test
     [TestFixture]
     public class ExcelWorksheetsTest
     {
-        ExcelPackage package;
-        ExcelWorksheets doc;
+        protected ExcelPackage package;
+        protected ExcelWorksheets doc;
+
+        protected const String Filename = "testWs.xlsx";
 
         [SetUp]
         public void SetUp()
         {
-            String file = "testWs.xlsx";
-            if (File.Exists(file)) { File.Delete(file); }
-            package = new ExcelPackage(new FileInfo(file));
+            if (File.Exists(Filename)) { File.Delete(Filename); }
+            package = new ExcelPackage(new FileInfo(Filename));
             doc = package.Workbook.Worksheets;
         }
 
@@ -27,7 +28,10 @@ namespace OfficeOpenXmlCrypto.Test
         {
             if (package != null)
             {
-                package.Save();
+                if (package.Workbook.Worksheets.Count > 0)
+                {
+                    package.Save();
+                }
                 package.Dispose();
                 package = null;
             }

@@ -71,6 +71,7 @@
   <ItemGroup>
     <Compile Include="ExcelCell.cs" />
     <Compile Include="ExcelColumn.cs" />
+    <Compile Include="ExcelDefinedNames.cs" />
     <Compile Include="ExcelHeaderFooter.cs" />
     <Compile Include="ExcelPackage.cs" />
     <Compile Include="ExcelRow.cs" />

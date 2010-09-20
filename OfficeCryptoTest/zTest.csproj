@@ -41,6 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExcelDefinedNamesTest.cs" />
     <Compile Include="ExcellCellTest.cs" />
     <Compile Include="ExcelWorksheetsTest.cs" />
     <Compile Include="ExcelStressTests.cs" />

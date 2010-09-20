@@ -51,6 +51,8 @@ namespace OfficeOpenXml
 		private ExcelPackage _xlPackage;
 		private XmlNamespaceManager _nsManager;
 		private XmlNode _worksheetsNode;
+
+        ExcelDefinedNames _definedNames;
 		#endregion
 
 		#region ExcelWorksheets Constructor
@@ -108,6 +110,8 @@ namespace OfficeOpenXml
 				// add worksheet to our collection
 				_worksheets.Add(new ExcelWorksheet(_xlPackage, relId, name, uriWorksheet, sheetID, hidden));
 			}
+
+            _definedNames = new ExcelDefinedNames(this, _xlPackage.Workbook.WorkbookXml);            
 		}
 		#endregion
 
@@ -119,6 +123,12 @@ namespace OfficeOpenXml
 		{
 			get { return (_worksheets.Count); }
 		}
+
+        public ExcelDefinedNames DefinedNames
+        {
+            get { return _definedNames; }
+        }
+
 		#endregion
 
 		#region ExcelWorksheets Public Methods
@@ -314,5 +324,10 @@ namespace OfficeOpenXml
 			throw new Exception("The method or operation is not implemented.");
 		}
 		#endregion
+
+        internal XmlNamespaceManager NsManager
+        {
+            get { return _nsManager; }
+        }
 	} // end class Worksheets
 }
