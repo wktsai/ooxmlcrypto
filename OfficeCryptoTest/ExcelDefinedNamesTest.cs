@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
 using System.Diagnostics;
+using OfficeOpenXml;
 
 namespace OfficeOpenXmlCrypto.Test
 {
@@ -23,6 +24,15 @@ namespace OfficeOpenXmlCrypto.Test
             {
                 Assert.IsTrue(doc.DefinedNames.Contains(Name(i)));      
             }
+        }
+
+        [Test]
+        public void GetCellRangeTest()
+        {
+            Assert.AreEqual("sheet!$A$1:$A$1", ExcelDefinedNames.GetRangeRef("sheet", 1, 1, 1, 1));
+            Assert.AreEqual("sheet!$A$1:$B$2", ExcelDefinedNames.GetRangeRef("sheet", 1, 2, 1, 2));
+            Assert.AreEqual("sheet!$A$1:$D$2", ExcelDefinedNames.GetRangeRef("sheet", 1, 2, 1, 4));
+            Assert.AreEqual("sheet!$J$1:$K$5", ExcelDefinedNames.GetRangeRef("sheet", 1,5,10,2));
         }
 
         [Test]

@@ -36,7 +36,6 @@ namespace OfficeOpenXml
                 wbNode.AppendChild(_definedNames);
             }
 
-            // TODO: validate
             XmlElement dnElement = _worsheetsXml.CreateElement("definedName", ExcelPackage.schemaMain);
             XmlAttribute nameAttrib = _worsheetsXml.CreateAttribute("name");
             nameAttrib.Value = name;
@@ -111,6 +110,26 @@ namespace OfficeOpenXml
             return null;
         }
 
+        /// <summary>
+        /// Get a range reference in Excel format
+        /// e.g. GetRange("sheet", 1,5,10,2) => "sheet!$J$1:$K$5"
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="startRow"></param>
+        /// <param name="rowCount">Number of rows to include, >=1</param>
+        /// <param name="startCol"></param>
+        /// <param name="colCount">Number of columns to include, >=1</param>
+        /// <returns></returns>
+        public static String GetRangeRef(String worksheet,
+            int startRow, int rowCount, int startCol, int colCount)
+        {
+            // Be tolerant
+            if (rowCount <= 0) { rowCount = 1; }
+            if (colCount <= 0) { colCount = 1; }
 
+            return worksheet + "!" +
+                "$" + ExcelCell.GetColumnLetter(startCol) + "$" + startRow + ":" +
+                "$" + ExcelCell.GetColumnLetter(startCol + colCount -1) + "$" + (startRow + rowCount - 1);
+        }
     }
 }
