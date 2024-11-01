@@ -72,8 +72,8 @@ namespace OfficeOpenXmlCrypto
         public byte[] ReadStream(String streamName)
         {
             byte[] contents;
-            using (Stream stream = PoiFS.CreatePOIFSDocumentReader(streamName))
-			{
+            using (Stream stream = PoiFS.Root.CreatePOIFSDocumentReader(streamName))
+            {
                 contents = new byte[stream.Length];
                 stream.Read(contents, 0, contents.Length);
 			}

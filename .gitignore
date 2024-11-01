@@ -1,0 +1,11 @@
+﻿################################################################################
+# 這個 .gitignore 檔案由 Microsoft(R) Visual Studio 自動建立。
+################################################################################
+
+/.vs
+/ExcelPackageSource/obj/Debug
+/OfficeCrypto/bin
+/OfficeCrypto/obj
+/OfficeCryptoTest/obj/x86/Debug
+/OfficeOpenXmlCrypto/.vs/OfficeOpenXmlCrypto/v17
+/OfficeOpenXmlCrypto.old.sln
